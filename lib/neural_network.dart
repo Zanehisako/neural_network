@@ -65,7 +65,7 @@ class _NeuralNetworkUiState extends State<NeuralNetworkUi> {
   NeuralNetwork? network;
   @override
   void initState() {
-    network = NeuralNetwork(2, 5, 2);
+    network = NeuralNetwork(2, 3, 1);
     network!.UpdateNetwork();
     network!.PrintNetwork();
     super.initState();
