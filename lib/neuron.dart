@@ -1,7 +1,14 @@
 import 'dart:math';
 
+import 'package:neural_network/activationFunctions.dart';
 import 'package:neural_network/layer.dart';
 import 'package:dart_numerics/dart_numerics.dart' as numerics;
+
+enum ActivationFunctions {
+  sigmoid,
+  tanh,
+  leakyReLU,
+}
 
 class Connections {
   double weight;
@@ -19,13 +26,18 @@ class Connections {
 class Bias extends Neuron {
   @override
   double value = 1;
-  Bias(super.numberOfOutputs, super.index, super.eta, super.alpha);
+
+  Bias(super.numberOfOutputs, super.index, super.eta, super.alpha) {
+    super.outputsWeights.forEach((element) {
+      element.UpdateDeltaWeight(1);
+    });
+  }
 }
 
 class Neuron {
   int index;
   int numberOfOutputs;
-  double value = 0;
+  double _myValue = 0;
   List<Connections> outputsWeights = [];
   double gradiant = 0;
   double eta; //Neural network training rate
@@ -36,32 +48,65 @@ class Neuron {
       outputsWeights.add(Connections(Random().nextDouble()));
     }
   }
+  double get myValue => _myValue;
 
-  void Update(NeuralLayer prevouislayer) {
-    for (var i = 0; i < prevouislayer.neurons.length; i++) {
-      value += value * prevouislayer.neurons[i].outputsWeights[index].weight;
+  set myValue(double value) {
+    _myValue = value;
+  }
+
+  void FeedFoward(NeuralLayer prevLayer, int layerIndex) {
+    double sum = 0.0;
+    for (var i = 0; i < prevLayer.neurons.length; i++) {
+      sum += (prevLayer.neurons[i].myValue *
+          prevLayer.neurons[i].outputsWeights[index].weight);
+    }
+    switch (layerIndex) {
+      case 1:
+        myValue = ActivationFunction(sum, ActivationFunctions.sigmoid);
+        break;
+      case 2:
+        myValue = ActivationFunction(sum, ActivationFunctions.tanh);
+        break;
+      default:
     }
   }
 
-  static double ActivationFunction(double x) {
-    //tanh
-    return numerics.tanh(x);
+  static double ActivationFunction(
+      double x, ActivationFunctions activationFunction) {
+    switch (activationFunction) {
+      case ActivationFunctions.sigmoid:
+        return sigmoid(x);
+      case ActivationFunctions.tanh:
+        return numerics.tanh(x);
+      case ActivationFunctions.leakyReLU:
+        return leakyReLU(x);
+    }
   }
 
-  static double ActivationFunctionDerivative(double x) {
-    //tanh derivative
-    return 1.0 - (x * x);
+  static double ActivationFunctionDerivative(
+      double x, ActivationFunctions activationFunction) {
+    switch (activationFunction) {
+      case ActivationFunctions.sigmoid:
+        return sigmoidDerivative(x);
+      case ActivationFunctions.tanh:
+        return 1 - (numerics.tanh(x) * numerics.tanh(x));
+      case ActivationFunctions.leakyReLU:
+        return leakyReLUDerivative(x);
+    }
   }
 
   void calculateOutputGradiant(double targetValue) {
     // the goal of this functions is to reduce the error
-    double delta = targetValue - value;
-    gradiant = delta * Neuron.ActivationFunctionDerivative(value);
+    double delta = targetValue - myValue;
+    gradiant = delta *
+        Neuron.ActivationFunctionDerivative(myValue, ActivationFunctions.tanh);
   }
 
   void calculateHiddenGradiant(NeuralLayer nextLayer) {
     double dow = SumDOW(nextLayer);
-    gradiant = dow * Neuron.ActivationFunctionDerivative(value);
+    gradiant = dow *
+        Neuron.ActivationFunctionDerivative(
+            myValue, ActivationFunctions.sigmoid);
   }
 
   void UpdateWeight(NeuralLayer prevLayer) {
@@ -70,7 +115,7 @@ class Neuron {
       double oldDeltaWeight = prvNeuron.outputsWeights[index].deltaWeight;
       double newDeltaWeight =
           //individual input,magified by the gradiant and the train rate
-          eta * prvNeuron.value * gradiant
+          eta * prvNeuron.myValue * gradiant
               //also add Momentum = a fraction of the previous delta weight
               +
               alpha * oldDeltaWeight;
