@@ -23,24 +23,33 @@ class Connections {
   }
 }
 
-class Bias extends Neuron {
-  @override
-  double value = 1;
+class Bias {
+  double value = Random().nextDouble();
+  double gradiant = 0;
+  Bias();
+  void calculateOutputGradiant(double targetValue) {
+    // the goal of this functions is to reduce the error
+    double delta = targetValue - value;
+    gradiant = delta *
+        Neuron.ActivationFunctionDerivative(value, ActivationFunctions.tanh);
+  }
 
-  Bias(super.numberOfOutputs, super.index, super.eta, super.alpha) {
-    super.outputsWeights.forEach((element) {
-      element.UpdateDeltaWeight(1);
-    });
+  void calculateHiddenGradiant(double targetValue, NeuralLayer layer) {
+    // the goal of this functions is to reduce the error
+    double delta = targetValue - value;
+    gradiant = delta *
+        Neuron.ActivationFunctionDerivative(value, ActivationFunctions.tanh);
   }
 }
 
 class Neuron {
+  double error = 0;
   int index;
   int numberOfOutputs;
-  double _myValue = 0;
+  double _myValue = Random().nextDouble();
   List<Connections> outputsWeights = [];
   double gradiant = 0;
-  double eta; //Neural network training rate
+  double eta; //Neural network learning rate
   double alpha; //multiplier of last weight change(momentum)
 
   Neuron(this.numberOfOutputs, this.index, this.eta, this.alpha) {
@@ -54,15 +63,17 @@ class Neuron {
     _myValue = value;
   }
 
-  void FeedFoward(NeuralLayer prevLayer, int layerIndex) {
+  void FeedFoward(NeuralLayer prevLayer, int layerIndex, double bias) {
     double sum = 0.0;
     for (var i = 0; i < prevLayer.neurons.length; i++) {
-      sum += (prevLayer.neurons[i].myValue *
-          prevLayer.neurons[i].outputsWeights[index].weight);
+      sum += ((prevLayer.neurons[i].myValue *
+              prevLayer.neurons[i].outputsWeights[index].weight) +
+          bias);
     }
+
     switch (layerIndex) {
       case 1:
-        myValue = ActivationFunction(sum, ActivationFunctions.sigmoid);
+        myValue = ActivationFunction(sum, ActivationFunctions.tanh);
         break;
       case 2:
         myValue = ActivationFunction(sum, ActivationFunctions.tanh);
@@ -105,8 +116,7 @@ class Neuron {
   void calculateHiddenGradiant(NeuralLayer nextLayer) {
     double dow = SumDOW(nextLayer);
     gradiant = dow *
-        Neuron.ActivationFunctionDerivative(
-            myValue, ActivationFunctions.sigmoid);
+        Neuron.ActivationFunctionDerivative(myValue, ActivationFunctions.tanh);
   }
 
   void UpdateWeight(NeuralLayer prevLayer) {

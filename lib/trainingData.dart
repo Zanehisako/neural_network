@@ -27,6 +27,24 @@ void ParseData(List<String> contents, List<Data> data) {
   }
 }
 
+void ParseDataXOR(List<String> contents, List<Data> data) {
+  if (data.isEmpty) {
+    for (int i = 0; i < contents.length; i++) {
+      List<String> inputs = [];
+      String targetValue;
+      List<String> InputTrims = contents[i].trim().split('	');
+      inputs = [InputTrims[0], InputTrims[1]];
+
+      targetValue = InputTrims.last;
+      data.add(Data(
+          inputs: inputs.map((e) => double.parse(e)).toList(),
+          targetValue: double.parse(targetValue)));
+    }
+  } else {
+    print('data is not empty');
+  }
+}
+
 class Trainer {
   List<Data> data;
 
